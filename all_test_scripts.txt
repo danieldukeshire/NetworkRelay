@@ -1,0 +1,208 @@
+========TEST1========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 10 5 5
+
+Inputs:
+	-->client1: SENDDATA base_station_a
+	-->control: QUIT
+	-->client1: QUIT
+
+client1 output:
+	client1: Sent a new message directly to base_station_a.
+
+control output:
+	base_station_a: Message from client1 to base_station_a successfully received.
+
+========TEST2========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 10 5 5
+
+Inputs:
+	-->client1: MOVE 9 9
+	-->client1: SENDDATA base_station_a
+	-->control: QUIT
+	-->client1: QUIT
+
+client1 output:
+	client1: Sent a new message bound for base_station_a.
+
+control output:
+	base_station_b: Message from client1 to base_station_a being forwarded through base_station_b
+	base_station_a: Message from client1 to base_station_a successfully received.
+
+========TEST3========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 10 5 5
+	python3 -u hw4_client.py control 9000 client2 10 15 15
+
+Inputs:
+	-->client2: SENDDATA base_station_a
+	-->control: QUIT
+	-->client1: QUIT
+	-->client2: QUIT
+
+client1 output:
+	client1: Message from client2 to base_station_a being forwarded through client1
+
+client2 output:
+	client2: Sent a new message bound for base_station_a.
+
+control output:
+	base_station_e: Message from client2 to base_station_a being forwarded through base_station_e
+	base_station_a: Message from client2 to base_station_a successfully received.
+
+========TEST4========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 10 5 5
+	python3 -u hw4_client.py control 9000 client2 10 19 19
+
+Inputs:
+	-->client1: SENDDATA base_station_h
+	-->client2: SENDDATA base_station_a
+	-->control: QUIT
+	-->client1: QUIT
+	-->client2: QUIT
+
+client1 output:
+	client1: Sent a new message bound for base_station_h.
+	client1: Message from client2 to base_station_a being forwarded through client1
+
+client2 output:
+	client2: Sent a new message bound for base_station_a.
+
+control output:
+	base_station_e: Message from client1 to base_station_h being forwarded through base_station_e
+	base_station_h: Message from client1 to base_station_h successfully received.
+	base_station_f: Message from client2 to base_station_a being forwarded through base_station_f
+	base_station_e: Message from client2 to base_station_a being forwarded through base_station_e
+	base_station_a: Message from client2 to base_station_a successfully received.
+
+========TEST5========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 10 5 5
+	python3 -u hw4_client.py control 9000 client2 10 19 19
+
+Inputs:
+	-->client1: SENDDATA client2
+	-->client1: MOVE 15 15
+	-->client1: SENDDATA client2
+	-->control: QUIT
+	-->client1: QUIT
+	-->client2: QUIT
+
+client1 output:
+	client1: Sent a new message bound for client2.
+	client1: Sent a new message directly to client2.
+
+client2 output:
+	client2: Message from client1 to client2 successfully received.
+	client2: Message from client1 to client2 successfully received.
+
+control output:
+	base_station_e: Message from client1 to client2 being forwarded through base_station_e
+	base_station_f: Message from client1 to client2 being forwarded through base_station_f
+
+========TEST6========
+Invocation:
+	python3 -u hw4_control.py 9000 handout_example.txt
+	python3 -u hw4_client.py control 9000 clientA 8 3 7
+	python3 -u hw4_client.py control 9000 clientB 8 8 7
+	python3 -u hw4_client.py control 9000 clientC 8 13 7
+
+Inputs:
+	-->clientA: SENDDATA base_station_i
+	-->control: QUIT
+	-->clientA: QUIT
+	-->clientB: QUIT
+	-->clientC: QUIT
+
+clientA output:
+	clientA: Sent a new message bound for base_station_i.
+
+clientB output:
+	clientB: Message from clientA to base_station_i being forwarded through clientB
+
+clientC output:
+
+control output:
+	base_station_i: Message from clientA to base_station_i successfully received.
+
+========TEST7========
+Invocation:
+	python3 -u hw4_control.py 9000 handout_example.txt
+	python3 -u hw4_client.py control 9000 clientA 5 3 7
+	python3 -u hw4_client.py control 9000 clientB 5 8 7
+	python3 -u hw4_client.py control 9000 clientC 5 14 7
+
+Inputs:
+	-->clientB: SENDDATA clientC
+	-->control: QUIT
+	-->clientA: QUIT
+	-->clientB: QUIT
+	-->clientC: QUIT
+
+clientA output:
+	clientA: Message from clientB to clientC being forwarded through clientA
+
+clientB output:
+	clientB: Sent a new message bound for clientC.
+
+clientC output:
+	clientC: Message from clientB to clientC successfully received.
+
+control output:
+	base_station_d: Message from clientB to clientC being forwarded through base_station_d
+	base_station_e: Message from clientB to clientC being forwarded through base_station_e
+	base_station_f: Message from clientB to clientC being forwarded through base_station_f
+	base_station_g: Message from clientB to clientC being forwarded through base_station_g
+	base_station_h: Message from clientB to clientC being forwarded through base_station_h
+	base_station_i: Message from clientB to clientC being forwarded through base_station_i
+
+========TEST8========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 1 5 5
+
+Inputs:
+	-->client1: SENDDATA base_station_h
+	-->control: QUIT
+	-->client1: QUIT
+
+client1 output:
+	client1: Message from client1 to base_station_h could not be delivered.
+
+control output:
+
+========TEST9========
+Invocation:
+	python3 -u hw4_control.py 9000 3_by_3.txt
+	python3 -u hw4_client.py control 9000 client1 1 5 5
+	python3 -u hw4_client.py control 9000 client2 10 19 19
+
+Inputs:
+	-->client2: SENDDATA client1
+	-->control: QUIT
+	-->client1: QUIT
+	-->client2: QUIT
+
+client1 output:
+
+client2 output:
+	client2: Sent a new message bound for client1.
+
+control output:
+	base_station_f: Message from client2 to client1 being forwarded through base_station_f
+	base_station_e: Message from client2 to client1 being forwarded through base_station_e
+	base_station_b: Message from client2 to client1 being forwarded through base_station_b
+	base_station_a: Message from client2 to client1 being forwarded through base_station_a
+	base_station_d: Message from client2 to client1 being forwarded through base_station_d
+	base_station_g: Message from client2 to client1 being forwarded through base_station_g
+	base_station_h: Message from client2 to client1 being forwarded through base_station_h
+	base_station_i: Message from client2 to client1 being forwarded through base_station_i
+	base_station_i: Message from client2 to client1 could not be delivered.
+

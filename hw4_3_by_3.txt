@@ -1,0 +1,9 @@
+base_station_a 0 0 2 base_station_b base_station_d
+base_station_b 0 10 3 base_station_a base_station_c base_station_e
+base_station_c 0 20 2 base_station_b base_station_f
+base_station_d 10 0 3 base_station_a base_station_e base_station_g
+base_station_e 10 10 4 base_station_b base_station_d base_station_h base_station_f
+base_station_f 10 20 3 base_station_c base_station_e base_station_i
+base_station_g 20 0 2 base_station_d base_station_h
+base_station_h 20 10 3 base_station_g base_station_e base_station_i
+base_station_i 20 20 2 base_station_f base_station_h

@@ -1,0 +1,6 @@
+base_station_f 0 0 2 base_station_g base_station_e
+base_station_e 0 5 2 base_station_f base_station_d
+base_station_d 5 5 1 base_station_e
+base_station_g 5 0 2 base_station_f base_station_h
+base_station_h 15 0 2 base_station_g base_station_i
+base_station_i 15 10 1 base_station_h
