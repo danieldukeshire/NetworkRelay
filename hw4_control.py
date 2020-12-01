@@ -7,6 +7,7 @@
 #
 # The graph class is implemented from: https://www.python-course.eu/graphs_python.php
 #
+
 import sys
 import socket
 import select
@@ -55,7 +56,6 @@ class Graph(object):
                 if {neighbour, vertex} not in redges:
                     redges.append({vertex, neighbour})
         return redges
-
 
     def find_path(self, start_vertex, end_vertex, path=None):       # Depth-first-search on the graph
         if path == None:
@@ -113,49 +113,69 @@ def readFromCommand():
             exit(1)
 
 #
-# readFromStd()
-# Reads-in the commands from stdin
-# Input options
+# run()
+# See https://pymotw.com/2/select/#module-select
+# Reads-in the commands from stdin whilst listening on the passed portnum using the select() call.
+# STD input options
 # SENDDATA [OriginID] [destinationID]
 # QUIT
+# Sensor input options
 #
 def run():
     listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
 
-    listening_socket.bind(('localhost', int(control_port)))                     # Set the socket to listen on any address, on the specified port
+    listening_socket.bind(('', int(control_port)))                     # Set the socket to listen on any address, on the specified port
     listening_socket.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
-
+    cond = True                                                                 # A condition to loop on, until the input from the terminal is QUIT
     inputs = [listening_socket, sys.stdin]                                      # Setting up the inputs for the select() call
     outputs = []
-    readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Making the select call
-    message_queues = {}
 
-    for i in readable:                                                          # Looping over the readable array returned from the select call
-        if i is listening_socket:                                               # A "readable"server socket is ready to accept a NEW connection
-            client_socket, client_address = s.accept()
-            print('new connection from ', client_address)
-            client_socket.setblocking(0)
-            inputs.append(client_socket)
-            message_queues[client_socket] = queue.Queue()
-        elif i is sys.stdin:                                                    # We recieved input fron the terminal
-            print("Hello")
-        else:                                                                   # Otherwise ... we recieved input from an already established connection
-            data = i.recv(1024)
-            if data:                                                            # A readable client socket has data
-                print('received {} from {}'.format(data, i.getpeername()))
-                message_queues[i].put(data)
-                if i not in outputs:                                            # Add output channel for response
-                    outputs.append(i)
+    while cond:                                                                   # Setting up the outputs for the select() call
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Making the select call
+        message_queues = {}
+        for i in readable:                                                          # Looping over the readable array returned from the select call
+            if i is listening_socket:                                               # A "readable"server socket is ready to accept a NEW connection
+                client_socket, client_address = i.accept()
+                print('new connection from ', client_address)
+                client_socket.setblocking(0)
+                inputs.append(client_socket)
+                message_queues[client_socket] = queue.Queue()
+            elif i is sys.stdin:                                                    # We recieved input fron the terminal
+                input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
+                input_array = input_message.split()                                 # Prepping for a send_data call
+                if(input_message == 'QUIT'):                                        # If the input is quit, we exit the loop
+                    cond = False
+                elif(input_array[0] == 'SENDDATA'):                                 # If we recieved a send sata call... we have to
+                    originID = input_array[1]
+                    destinationID = input_array[2]
+                    print('received send data call:', originID,'to', destinationID)
                 else:
-                    print('closing', client_address, 'after reading no data')
-                    # Stop listening for input on the connection
-                    if i in outputs:
-                        outputs.remove(i)
-                    inputs.remove(i)
-                    s.close()
-                    del message_queues[i]
-
-
+                    print('invalid command entered')
+            else:
+                data = i.recv(1024)                                                 # Otherwise ... we recieved input from an already established connection
+                if data:                                                            # A readable client socket has data
+                    print("Server received", data.decode())
+                    message_queues[i].put(data)
+                    if i not in outputs:                                            # Add output channel for response
+                        outputs.append(i)
+                    else:
+                        print('closing', client_address, 'after reading no data')
+                        # Stop listening for input on the connection
+                        if i in outputs:
+                            outputs.remove(i)
+                        inputs.remove(i)
+                        i.close()
+                        del message_queues[i]
+            for s in writable:                                                      # Sending output to the port if need be
+                try:
+                    next_msg = message_queues[s].get_nowait()
+                except Queue.Empty:
+                    # No messages waiting so stop checking for writability.
+                    print('output queue for ', s.getpeername(), ' is empty')
+                    outputs.remove(s)
+                else:
+                    print('sending {} to {}'.format(next_msg, s.getpeername()))
+                    s.send(next_msg)
 
 if __name__ == '__main__':
     readFromCommand()
