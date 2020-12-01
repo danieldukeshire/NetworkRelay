@@ -5,8 +5,12 @@
 # This is a control server used to relay TCP messages between sensors (clients)
 # and manage messages that are moving between base stations .
 #
-
+# The graph class is implemented from: https://www.python-course.eu/graphs_python.php
+#
 import sys
+import socket
+import select
+import queue
 
 control_port = None                     # The port the server should listen on for sensors to connect to
 graph = None
@@ -52,6 +56,25 @@ class Graph(object):
                     redges.append({vertex, neighbour})
         return redges
 
+
+    def find_path(self, start_vertex, end_vertex, path=None):       # Depth-first-search on the graph
+        if path == None:
+            path = []
+        graph = self.graph
+        path = path + [start_vertex]
+        if start_vertex == end_vertex:
+            return path
+        if start_vertex not in graph:
+            return None
+        for vertex in graph[start_vertex]:
+            if vertex not in path:
+                extended_path = self.find_path(vertex,
+                                               end_vertex,
+                                               path)
+                if extended_path:
+                    return extended_path
+        return None
+
 #
 # inputToGraph()
 # Takes a file pointer as input, and converts the text file to a graph object
@@ -74,10 +97,11 @@ def inputToGraph(fp):
 # readIn()
 # Reads-in the values from the command-line: control port and text file
 #
-def readIn():
+def readFromCommand():
     if len(sys.argv) != 3:                                          # Ensuring the proper number of command-line agrs
         print("Error, correct usage is {} [control port] [base station file]".format(sys.argv[0]))
 
+    global control_port
     control_port = sys.argv[1]                                      # The port to be listening on (global)
     file = sys.argv[2]                                              # The file with the graph values
     try:
@@ -88,6 +112,51 @@ def readIn():
             print("Could not read file: ", file)                    # If we catch an error, we can not proceed. Therefore, we exit
             exit(1)
 
+#
+# readFromStd()
+# Reads-in the commands from stdin
+# Input options
+# SENDDATA [OriginID] [destinationID]
+# QUIT
+#
+def run():
+    listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
+
+    listening_socket.bind(('localhost', int(control_port)))                     # Set the socket to listen on any address, on the specified port
+    listening_socket.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
+
+    inputs = [listening_socket, sys.stdin]                                      # Setting up the inputs for the select() call
+    outputs = []
+    readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Making the select call
+    message_queues = {}
+
+    for i in readable:                                                          # Looping over the readable array returned from the select call
+        if i is listening_socket:                                               # A "readable"server socket is ready to accept a NEW connection
+            client_socket, client_address = s.accept()
+            print('new connection from ', client_address)
+            client_socket.setblocking(0)
+            inputs.append(client_socket)
+            message_queues[client_socket] = queue.Queue()
+        elif i is sys.stdin:                                                    # We recieved input fron the terminal
+            print("Hello")
+        else:                                                                   # Otherwise ... we recieved input from an already established connection
+            data = i.recv(1024)
+            if data:                                                            # A readable client socket has data
+                print('received {} from {}'.format(data, i.getpeername()))
+                message_queues[i].put(data)
+                if i not in outputs:                                            # Add output channel for response
+                    outputs.append(i)
+                else:
+                    print('closing', client_address, 'after reading no data')
+                    # Stop listening for input on the connection
+                    if i in outputs:
+                        outputs.remove(i)
+                    inputs.remove(i)
+                    s.close()
+                    del message_queues[i]
+
+
 
 if __name__ == '__main__':
-    readIn()
+    readFromCommand()
+    run()
