@@ -124,20 +124,20 @@ def readFromCommand():
 def run():
     listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
 
-    listening_socket.bind(('', int(control_port)))                     # Set the socket to listen on any address, on the specified port
+    listening_socket.bind(('', int(control_port)))                              # Set the socket to listen on any address, on the specified port
     listening_socket.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
     cond = True                                                                 # A condition to loop on, until the input from the terminal is QUIT
     inputs = [listening_socket, sys.stdin]                                      # Setting up the inputs for the select() call
     outputs = []
+    message_queues = {}
 
     while cond:                                                                   # Setting up the outputs for the select() call
         readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Making the select call
-        message_queues = {}
         for i in readable:                                                          # Looping over the readable array returned from the select call
             if i is listening_socket:                                               # A "readable"server socket is ready to accept a NEW connection
                 client_socket, client_address = i.accept()
                 print('new connection from ', client_address)
-                client_socket.setblocking(0)
+                client_socket.setblocking(1)
                 inputs.append(client_socket)
                 message_queues[client_socket] = queue.Queue()
             elif i is sys.stdin:                                                    # We recieved input fron the terminal
@@ -158,15 +158,16 @@ def run():
                     message_queues[i].put(data)
                     if i not in outputs:                                            # Add output channel for response
                         outputs.append(i)
-                    else:
-                        print('closing', client_address, 'after reading no data')
-                        # Stop listening for input on the connection
-                        if i in outputs:
-                            outputs.remove(i)
-                        inputs.remove(i)
-                        i.close()
-                        del message_queues[i]
+                else:
+                    print('closing', client_address, 'after reading no data')
+                    # Stop listening for input on the connection
+                    if i in outputs:
+                        outputs.remove(i)
+                    inputs.remove(i)
+                    i.close()
+                    del message_queues[i]
             for s in writable:                                                      # Sending output to the port if need be
+                print('bitch')
                 try:
                     next_msg = message_queues[s].get_nowait()
                 except Queue.Empty:
@@ -174,8 +175,9 @@ def run():
                     print('output queue for ', s.getpeername(), ' is empty')
                     outputs.remove(s)
                 else:
-                    print('sending {} to {}'.format(next_msg, s.getpeername()))
+                    print('sending {} to {}'.format(next_msg.decode(), s.getpeername()))
                     s.send(next_msg)
+
 
 if __name__ == '__main__':
     readFromCommand()
