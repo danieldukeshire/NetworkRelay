@@ -70,23 +70,12 @@ class Graph(object):
                             self.add_edge(node, vertex)                 # and we add the edges accordingly
                             self.add_edge(vertex, node)
 
-    def find_path(self, start_vertex, end_vertex, path=None):           # Depth-first-search on the graph
-        if path == None:
-            path = []
-        graph = self.graph
-        path = path + [start_vertex]
-        if start_vertex == end_vertex:
-            return path
-        if start_vertex not in graph:
-            return None
-        for vertex in graph[start_vertex]:
-            if vertex not in path:
-                extended_path = self.find_path(vertex,
-                                               end_vertex,
-                                               path)
-                if extended_path:
-                    return extended_path
-        return None
+    def removeEdgesId(self, node):                                  # Removes all edge values with the same id value as "node"
+        for vertex in self.graph:
+            try:
+                self.graph[vertex].remove(node)                     # Deletes the value .... as i dont loop through to check...
+            except ValueError:                                      # I might get an error
+                pass                                                # do nothing in the case of getting the value error
 
 #
 # inputToGraph()
@@ -125,7 +114,6 @@ def readFromCommand():
             print("Could not read file: ", file)                    # If we catch an error, we can not proceed. Therefore, we exit
             exit(1)
 
-
 #
 # handleSendData()
 # Takes the originId and the destinationID, and outputs to the terminal after a few checks.
@@ -148,11 +136,27 @@ def handleUpdatePosition(value_list, server):
     new_y = value_list[4]
 
     if(sensor_id in graph.graph.keys()):                            # Check to see if the node is in the graph. If it is we update
-        print("Its  here!")
-        # Update position, range, and all node edges as the position has changed
+        graph.graph[sensor_id] = []                                 # Clear all of the edges
+        graph.removeEdgesId(sensor_id)                              # Removes all the edges with the passed sensor_id
+        graph.positions[sensor_id] = (int(new_x), int(new_y))       # Update the position
+        graph.type[sensor_id] = sensor_range                        # Update the range
+        graph.find_edges(sensor_id, sensor_range)                   # Finding all of the edges for the added node
     else:                                                           # If its not in the graph, we need to add it to the graph
         graph.add_node(sensor_id, new_x, new_y, sensor_range)       # Adding it to the graph
         graph.find_edges(sensor_id, sensor_range)                   # Finding all of the edges for the added node
+
+    num_reachable = len(graph.graph[sensor_id])                     # The number of reachable nodes
+    reachable_list = []                                             # Initializing the reachable list
+
+    # Create the reachable list
+    for i in graph.graph[sensor_id]:
+        x = graph.positions[i][0]
+        y = graph.positions[i][1]
+        temp_string = "{} {} {}".format(i, x, y)                    # "Each entry in ReachableList is actually 3 strings: [ID] [XPosition] [YPosition].
+        reachable_list.append(temp_string)                          # Entries are separated by a space."
+
+    send_string = "REACHABLE {} {}".format(num_reachable, reachable_list)
+    server.send(send_string.encode('utf-8'))                        # Sends the string to the client
 
 #
 # run()
@@ -175,7 +179,7 @@ def runServer():
     outputs = []
     cond = True
 
-    while inputs and cond:
+    while cond:
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for i in readable:
             if i is server:
@@ -201,9 +205,7 @@ def runServer():
                     str_list = str.split()
                     print(str)
                     if(str_list[0] == 'UPDATEPOSITION'):
-                        handleUpdatePosition(str_list, server)
-                        i.send("REACHABLE".encode('utf-8'))
-                        print(graph.graph)
+                        handleUpdatePosition(str_list, i)
                     elif(str_list[0] == 'WHERE'):
                         print("Handle where")
                         i.send("Some list of values".encode('utf-8'))

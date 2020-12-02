@@ -25,7 +25,6 @@ y_coordinate = None         # The current y_coordinate of this client
 # UPDATEPOSITION [SensorID] [SensorRange] [CurrentXPosition] [CurrentYPosition]
 #
 def sendUpdatePosition(client):
-    print("X", x_coordinate, "Y", y_coordinate)
     send_string = "UPDATEPOSITION {} {} {} {}".format(sensor_id, sensor_range, x_coordinate, y_coordinate)
     client.send(send_string.encode('utf-8'))
     buf = client.recv(1024)
@@ -100,11 +99,9 @@ def runClient():
                 buf = client.recv(1024)
                 if(len(buf.decode()) != 0):
                     str = buf.decode()
-                    print("Recieved a message from server:",str)
             elif i is sys.stdin:                                                    # RECIEVING DATA FROM STDIN
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for multi-input stdin values
-                print("Recieved a message from stdin:", input_message)
                 if(input_message == 'QUIT'):                                        # RECIEVE QUIT MESSAGE
                     cond = False
                     client.close()
