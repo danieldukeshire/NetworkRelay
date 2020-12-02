@@ -122,25 +122,26 @@ def readFromCommand():
 # Sensor input options
 #
 def run():
-    listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
 
-    listening_socket.bind(('', int(control_port)))                              # Set the socket to listen on any address, on the specified port
-    listening_socket.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
+    server.bind(('', int(control_port)))                              # Set the socket to listen on any address, on the specified port
+    server.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
+    #server.setblocking(0)
     cond = True                                                                 # A condition to loop on, until the input from the terminal is QUIT
-    inputs = [listening_socket, sys.stdin]                                      # Setting up the inputs for the select() call
+    inputs = [server, sys.stdin]                                      # Setting up the inputs for the select() call
     outputs = []
     message_queues = {}
+    cond = True
 
-    while cond:                                                                   # Setting up the outputs for the select() call
-        readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Making the select call
-        for i in readable:                                                          # Looping over the readable array returned from the select call
-            if i is listening_socket:                                               # A "readable"server socket is ready to accept a NEW connection
-                client_socket, client_address = i.accept()
-                print('new connection from ', client_address)
-                client_socket.setblocking(1)
-                inputs.append(client_socket)
-                message_queues[client_socket] = queue.Queue()
-            elif i is sys.stdin:                                                    # We recieved input fron the terminal
+    while inputs and cond:
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        for i in readable:
+            if i is server:
+                connection, client_address = i.accept()
+                connection.setblocking(0)
+                inputs.append(connection)
+                message_queues[connection] = queue.Queue()
+            elif i is sys.stdin:
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for a send_data call
                 if(input_message == 'QUIT'):                                        # If the input is quit, we exit the loop
@@ -152,31 +153,31 @@ def run():
                 else:
                     print('invalid command entered')
             else:
-                data = i.recv(1024)                                                 # Otherwise ... we recieved input from an already established connection
-                if data:                                                            # A readable client socket has data
-                    print("Server received", data.decode())
+                data = i.recv(1024)
+                if data:
                     message_queues[i].put(data)
-                    if i not in outputs:                                            # Add output channel for response
+                    if i not in outputs:
                         outputs.append(i)
                 else:
-                    print('closing', client_address, 'after reading no data')
-                    # Stop listening for input on the connection
                     if i in outputs:
                         outputs.remove(i)
                     inputs.remove(i)
                     i.close()
                     del message_queues[i]
-            for s in writable:                                                      # Sending output to the port if need be
-                print('bitch')
-                try:
-                    next_msg = message_queues[s].get_nowait()
-                except Queue.Empty:
-                    # No messages waiting so stop checking for writability.
-                    print('output queue for ', s.getpeername(), ' is empty')
-                    outputs.remove(s)
-                else:
-                    print('sending {} to {}'.format(next_msg.decode(), s.getpeername()))
-                    s.send(next_msg)
+        for i in writable:
+            try:
+                next_msg = message_queues[i].get_nowait()
+            except queue.Empty:
+                outputs.remove(i)
+            else:
+                i.send(next_msg)
+
+        for i in exceptional:
+            inputs.remove(i)
+            if i in outputs:
+                outputs.remove(i)
+            i.close()
+            del message_queues[i]
 
 
 if __name__ == '__main__':
