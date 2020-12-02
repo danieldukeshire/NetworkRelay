@@ -155,6 +155,7 @@ def runServer():
                 input_array = input_message.split()                                 # Prepping for a send_data call
                 if(input_message == 'QUIT'):                                        # If the input is quit, we exit the loop
                     cond = False
+                    server.close()
                 elif(input_array[0] == 'SENDDATA'):                                 # If we recieved a send sata call... we have to
                     originID = input_array[1]
                     destinationID = input_array[2]
