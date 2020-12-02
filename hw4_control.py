@@ -94,7 +94,7 @@ def inputToGraph(fp):
             graph.add_edge({BaseId, i})
 
 #
-# readIn()
+# readFromCommand()
 # Reads-in the values from the command-line: control port and text file
 #
 def readFromCommand():
@@ -112,6 +112,15 @@ def readFromCommand():
             print("Could not read file: ", file)                    # If we catch an error, we can not proceed. Therefore, we exit
             exit(1)
 
+
+#
+# handleSendData()
+# Takes the originId and the destinationID, and outputs to the terminal after a few checks.
+# This is called in run() upon a senddata request
+#
+def handleSendData(originID, destinationID):
+    print('This is where we handle the send data call from terminal')
+
 #
 # run()
 # See https://pymotw.com/2/select/#module-select
@@ -121,13 +130,13 @@ def readFromCommand():
 # QUIT
 # Sensor input options
 #
-def run():
+def runServer():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
 
     server.bind(('', int(control_port)))                              # Set the socket to listen on any address, on the specified port
     server.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
     #server.setblocking(0)
-    cond = True                                                                 # A condition to loop on, until the input from the terminal is QUIT
+    cond = True                                                       # A condition to loop on, until the input from the terminal is QUIT
     inputs = [server, sys.stdin]                                      # Setting up the inputs for the select() call
     outputs = []
     message_queues = {}
@@ -149,7 +158,7 @@ def run():
                 elif(input_array[0] == 'SENDDATA'):                                 # If we recieved a send sata call... we have to
                     originID = input_array[1]
                     destinationID = input_array[2]
-                    print('received send data call:', originID,'to', destinationID)
+                    handleSendData(originID, destinationID)
                 else:
                     print('invalid command entered')
             else:
@@ -182,4 +191,4 @@ def run():
 
 if __name__ == '__main__':
     readFromCommand()
-    run()
+    runServer()
