@@ -18,6 +18,7 @@ sensor_range = None         # The range of this clint
 x_coordinate = None         # The current x_coordinate of this client
 y_coordinate = None         # The current y_coordinate of this client
 
+
 #
 # sendUpdatePosition
 # Takes a client object, and sends an updte position message to the server in the form of:
@@ -27,6 +28,8 @@ def sendUpdatePosition(client):
     print("X", x_coordinate, "Y", y_coordinate)
     send_string = "UPDATEPOSITION {} {} {} {}".format(sensor_id, sensor_range, x_coordinate, y_coordinate)
     client.send(send_string.encode('utf-8'))
+    buf = client.recv(1024)
+    print(buf.decode())       
 
 #
 # handleSendData()
@@ -47,6 +50,14 @@ def handleMove(new_x, new_y, client):
     y_coordinate = new_y
     sendUpdatePosition(client)                      # Updates the server with the new coordinates
 
+#
+# handleWhere()
+# Handles the where clause from stdin.
+#
+def handleWhere(send_string, client):
+    client.send(send_string.encode('utf-8'))        # Sends the WHERE to the server
+    buf = client.recv(1024)                         # We block on this recv call
+    print(buf.decode())                             # print it to the terminal
 #
 # readFromCommand()
 # Reads-in the values from the command-line: control address, control port, sensor ID, sensor range
@@ -88,7 +99,10 @@ def runClient():
             if i is client:
                 buf = client.recv(1024)
                 if(len(buf.decode()) != 0):
-                    print("Recieved a message from server:",buf.decode())
+                    str = buf.decode()
+                    print("Recieved a message from server:",str)
+
+
             elif i is sys.stdin:                                                    # RECIEVING DATA FROM STDIN
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for multi-input stdin values
@@ -104,7 +118,7 @@ def runClient():
                     destinationID = input_array[1]
                     handleSendData(originID, destinationID)
                 elif(input_array[0] == 'WHERE'):                                    # RECIEVE WHERE MESSAGE
-                    print("Implenent Send Data")
+                    handleWhere(input_message, client)
                 else:
                     print('Command not supported. Try again')
 

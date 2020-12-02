@@ -165,29 +165,17 @@ def runServer():
             else:
                 data = i.recv(1024)
                 if data:
-                    message_queues[i].put(data)
+                    str = data.decode().strip()
+                    str_list = str.split()
+                    print(str)
+                    if(str_list[0] == 'UPDATEPOSITION'):
+                        print("Handle update position")
+                        i.send("REACHABLE".encode('utf-8'))
+                    elif(str_list[0] == 'WHERE'):
+                        print("Handle where")
+                        i.send("Some list of values".encode('utf-8'))
                     if i not in outputs:
                         outputs.append(i)
-                else:
-                    if i in outputs:
-                        outputs.remove(i)
-                    inputs.remove(i)
-                    i.close()
-                    del message_queues[i]
-        for i in writable:
-            try:
-                next_msg = message_queues[i].get_nowait()
-            except queue.Empty:
-                outputs.remove(i)
-            else:
-                i.send(next_msg)
-
-        for i in exceptional:
-            inputs.remove(i)
-            if i in outputs:
-                outputs.remove(i)
-            i.close()
-            del message_queues[i]
 
 #
 # main()
