@@ -29,7 +29,7 @@ def sendUpdatePosition(client):
     send_string = "UPDATEPOSITION {} {} {} {}".format(sensor_id, sensor_range, x_coordinate, y_coordinate)
     client.send(send_string.encode('utf-8'))
     buf = client.recv(1024)
-    print(buf.decode())       
+    print(buf.decode())
 
 #
 # handleSendData()
@@ -101,8 +101,6 @@ def runClient():
                 if(len(buf.decode()) != 0):
                     str = buf.decode()
                     print("Recieved a message from server:",str)
-
-
             elif i is sys.stdin:                                                    # RECIEVING DATA FROM STDIN
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for multi-input stdin values

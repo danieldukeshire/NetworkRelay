@@ -12,6 +12,7 @@ import sys
 import socket
 import select
 import queue
+import numpy as np
 
 control_port = None                     # The port the server should listen on for sensors to connect to
 graph = None
@@ -28,6 +29,8 @@ class Graph(object):
             graph_dict = {}
         self.graph = graph_dict
         self.positions = {}                                         # An associated dictionary with the coordinates
+        self.type = {}                                              # An associated dictionary with the type of object
+                                                                    # i.e. if the object is a sensor (Range Value), or a base station (-1)
 
     def vertices(self):                                             # Returns the number of verticies within the graph
         return list(self.graph.keys())
@@ -35,13 +38,15 @@ class Graph(object):
     def edges(self):                                                # Returns the edges of the graph
         return self.generate_edges()
 
-    def add_node(self, node, x, y):                                 # Adds a node value if it not already in the graph
+    def add_node(self, node, x, y, Range):                          # Adds a node value if it not already in the graph
         if node not in self.graph:                                  # graph.add_node("b")
             self.graph[node] = []
         if node not in self.positions:                              # We have an associated dictionary with the coordinate values
             self.positions[node] = (x, y)
+        if node not in self.type:
+            self.type[node] = type                                  # assigns the boolean value, TRUE if it is a base station, FALSE otherwise
 
-    def add_edge(self, edge):                                       # Adds an edge between two values in the form:
+    def add_edge(self, edge):                                       # Adds an edge between two BASE STATIONS, NOT SENSORS in the form:
         edge = set(edge)                                            # graph.add_edge({"a", "z"})
         (vertex1, vertex2) = tuple(edge)
         if vertex1 in self.graph:
@@ -49,13 +54,25 @@ class Graph(object):
         else:
             self.graph[vertex1] = [vertex2]
 
-    def generate_edges(self):                                       # Returns a list of tuples of all the edges in the graph
-        redges = []
-        for vertex in self.graph:
-            for neighbour in self.graph[vertex]:
-                if {neighbour, vertex} not in redges:
-                    redges.append({vertex, neighbour})
-        return redges
+    def find_edges(self, node, range):                              # Called by SENSORS ONLY, calculates all the connected values with EUCLEAN DISTANCE
+        if self.type[node] == -1:                                   # Returns nothing if a base-station calls it
+            return
+        else:                                                       # Otherwise, I loop through all the positions and calculate the edges
+            a = self.positions[node]                                # Gathering the current location of the node
+            point1 = np.array(a)
+            for vertex in self.graph:
+                b = self.positions[vertex]                          # Getting each vertex's location (x and y values) to calculate the distance
+                point2 = np.array(b)
+                dist = np.linalg.norm(point1 - point2)
+                if(self.type[vertex] == -1):                        # If it is a base station, all we need to check for an edge is the sensor's distance
+                    if(range >= dst):                               # If the point is within range ... we can add an edge to the base station and sensor
+                        self.add_edge({node, vertex})
+                        self.add_edge({vertex, node})
+                else:                                               # Otherwise, if it is a sensor, they both have to be in range of one another
+                    range2 = self.type[vertex]
+                    if(range>=dst and range2>=dst):                 # Here, we check to see if the ranges are compatable
+                        self.add_edge({node, vertex})               # and we add the edges accordingly
+                        self.add_edge({vertex, node})
 
     def find_path(self, start_vertex, end_vertex, path=None):       # Depth-first-search on the graph
         if path == None:
@@ -89,7 +106,7 @@ def inputToGraph(fp):
         YPos = int(inputs[2])                                       # X coordinate value
         NumLinks = int(inputs[3])                                   # The number of edges
         edges = inputs[4:]                                          # All of the edges is what is left over
-        graph.add_node(BaseId, XPos, YPos)                          # Adds the id to the graph
+        graph.add_node(BaseId, XPos, YPos, -1)                      # Adds the id to the graph
         for i in edges:                                             # Adds all of the edges
             graph.add_edge({BaseId, i})
 
@@ -122,6 +139,27 @@ def handleSendData(originID, destinationID):
     print('This is where we handle the send data call from terminal')
 
 #
+# handleUpdatePosition()
+# Takes the server and list of values passed by the UPDATEPOSITION. Checks to see if the node is in the graph.
+# If it isnt, it is added properly. If it is there, it updates the location of the node, and ALL of the edges
+# In the graph related to that node
+#
+def handleUpdatePosition(value_list, server):
+    global graph
+    sensor_id = value_list[1]                                       # Assigning all the variables from the graph accordingly
+    sensor_range = value_list[2]
+    new_x = value_list[3]
+    new_y = value_list[4]
+
+    if(sensor_id in graph.graph.keys()):                            # Check to see if the node is in the graph. If it is we update
+        print("Its  here!")
+        # Update position, range, and all node edges as the position has changed
+    else:                                                           # If its not in the graph, we need to add it to the graph
+        graph.add_node(sensor_id, new_x, new_y, sensor_range)       # Adding it to the graph
+        graph.find_edges(sensor_id, sensor_range)                   # Finding all of the edges for the added node
+        dsfasd
+
+#
 # run()
 # See https://pymotw.com/2/select/#module-select
 # Reads-in the commands from stdin whilst listening on the passed portnum using the select() call.
@@ -139,7 +177,6 @@ def runServer():
     cond = True                                                       # A condition to loop on, until the input from the terminal is QUIT
     inputs = [server, sys.stdin]                                      # Setting up the inputs for the select() call
     outputs = []
-    message_queues = {}
     cond = True
 
     while inputs and cond:
@@ -149,7 +186,6 @@ def runServer():
                 connection, client_address = i.accept()
                 connection.setblocking(0)
                 inputs.append(connection)
-                message_queues[connection] = queue.Queue()
             elif i is sys.stdin:
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for a send_data call
@@ -169,7 +205,7 @@ def runServer():
                     str_list = str.split()
                     print(str)
                     if(str_list[0] == 'UPDATEPOSITION'):
-                        print("Handle update position")
+                        handleUpdatePosition(str_list, server)
                         i.send("REACHABLE".encode('utf-8'))
                     elif(str_list[0] == 'WHERE'):
                         print("Handle where")
