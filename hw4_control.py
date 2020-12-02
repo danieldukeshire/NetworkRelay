@@ -189,7 +189,10 @@ def runServer():
             i.close()
             del message_queues[i]
 
-
+#
+# main()
+# Gets the server going, calls read-in functions
+#
 if __name__ == '__main__':
     readFromCommand()
     runServer()

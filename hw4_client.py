@@ -24,8 +24,28 @@ y_coordinate = None         # The current y_coordinate of this client
 # UPDATEPOSITION [SensorID] [SensorRange] [CurrentXPosition] [CurrentYPosition]
 #
 def sendUpdatePosition(client):
+    print("X", x_coordinate, "Y", y_coordinate)
     send_string = "UPDATEPOSITION {} {} {} {}".format(sensor_id, sensor_range, x_coordinate, y_coordinate)
     client.send(send_string.encode('utf-8'))
+
+#
+# handleSendData()
+# Handles the send data call from stdin. Not sure as what to do here ????
+#
+def handleSendData(destinationID):
+    print("handled send data", destinationID)
+    # First update position
+
+#
+# handleMove()
+# Handles the move call from stdin. Takes the new coordinates and the client
+# to send an updateposition call
+#
+def handleMove(new_x, new_y, client):
+    global x_coordinate, y_coordinate               # Must first recognize scope
+    x_coordinate = new_x                            # Assigns the new variables to the global ones
+    y_coordinate = new_y
+    sendUpdatePosition(client)                      # Updates the server with the new coordinates
 
 #
 # readFromCommand()
@@ -37,18 +57,13 @@ def readFromCommand():
         print("Error, correct usage is {} [control address] [control port] [SensorID] [SensorRange] [InitalXPosition] [InitialYPosition]".format(sys.argv[0]))
 
     # Reading values from the command line and declaring them as global variables
-    global control_address
+    global control_address, control_port, sensor_id, sensor_range, x_coordinate, y_coordinate
     control_address = sys.argv[1]
-    global control_port
     control_port = int(sys.argv[2])
-    global sensor_id
     sensor_id = sys.argv[3]
-    global sensor_range
     sensor_range = sys.argv[4]
-    global x_coordinate
     x_coordinate = sys.argv[5]
-    global y_coordinate
-    y_coortdinate = sys.argv[6]
+    y_coordinate = sys.argv[6]
 
 #
 # runCLient()
@@ -74,32 +89,29 @@ def runClient():
                 buf = client.recv(1024)
                 if(len(buf.decode()) != 0):
                     print("Recieved a message from server:",buf.decode())
-            elif i is sys.stdin:
+            elif i is sys.stdin:                                                    # RECIEVING DATA FROM STDIN
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for multi-input stdin values
                 print("Recieved a message from stdin:", input_message)
-                if(input_message == 'QUIT'):
+                if(input_message == 'QUIT'):                                        # RECIEVE QUIT MESSAGE
                     cond = False
                     client.close()
-                elif(input_array[0] == 'MOVE'):
-                    print("Implement Move")
-                elif(input_array[0] == 'SENDDATA'):
-                    print("Implement Send Data")
-                elif(input_array[0] == 'WHERE'):
+                elif(input_array[0] == 'MOVE'):                                     # RECIEVE MOVE MESSAGE
+                    new_x = input_array[1]                                          # Read in the new values from stdin
+                    new_y = input_array[2]
+                    handleMove(new_x, new_y, client)                                # Pass them to the handler function
+                elif(input_array[0] == 'SENDDATA'):                                 # RECIEVE SENDDATE MESSAGE
+                    destinationID = input_array[1]
+                    handleSendData(originID, destinationID)
+                elif(input_array[0] == 'WHERE'):                                    # RECIEVE WHERE MESSAGE
                     print("Implenent Send Data")
+                else:
+                    print('Command not supported. Try again')
 
-
-
-    #recv_string = client.recv(1024)                                     # Get the response from the server
-
-    # Disconnect from the server
-    #print("Closing connection to server")
-    #client.close()
-
-    # Print the response to standard output, both as byte stream and decoded text
-    #print(f"Received {recv_string} from the server")
-    #print(f"Decoding, received {recv_string.decode('utf-8')} from the server")
-
+#
+# main()
+# Gets the client going, calls read-in functions
+#
 if __name__ == '__main__':
     readFromCommand()
     runClient()
