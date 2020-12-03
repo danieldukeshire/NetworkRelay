@@ -106,6 +106,20 @@ def handleWhere(send_string, client):
     client.send(send_string.encode('utf-8'))        # Sends the WHERE to the server
     buf = client.recv(1024)                         # We block on this recv call
     print(buf.decode())                             # print it to the terminal
+
+#
+# internalWhere()
+# handles where calls needed by the code
+#
+def internalWhere(nodeID, client):
+	send_string = "WHERE {}".format(nodeID)
+	client.send(send_string.encode('utf-8'))
+	buf = client.recv(1024)
+	there = buf.decode('utf-8').split()
+
+	return {there[1]: ( int(there[2]),int(there[3]) )}
+
+
 #
 # readFromCommand()
 # Reads-in the values from the command-line: control address, control port, sensor ID, sensor range
