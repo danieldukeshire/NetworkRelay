@@ -18,7 +18,6 @@ sensor_range = None         # The range of this clint
 x_coordinate = None         # The current x_coordinate of this client
 y_coordinate = None         # The current y_coordinate of this client
 
-
 #
 # sendUpdatePosition
 # Takes a client object, and sends an updte position message to the server in the form of:
@@ -30,16 +29,16 @@ def sendUpdatePosition(client):
     buf = client.recv(1024)
     return buf
 
-# 
+#
 # interpretPositionString()
 # takes as input the result from UPDATEPOSITION and returns a proper dictionary of reachable items.
 # Input in format: REACHABLE [NumReachable] [ReachableList]
 # Where ReachableList in space delimited format: [ID] [XPOS] [YPOS]
 # returns dictionary in format: {Key = station_name, Value = coord_tuple (x,y)}
-# 
+#
 def interpretPositionString(msg):
 	output = {}
-	delim_str = msg.decode("utf-8").split()								
+	delim_str = msg.decode("utf-8").split()
 	numReachable = int(delim_str[1])
 
 	# Get the list and loop through the items

@@ -123,6 +123,21 @@ def handleSendData(originID, destinationID):
     print('This is where we handle the send data call from terminal')
 
 #
+# handleWhere()
+# On request from the client, returns a formatted message with the location of the
+# passed id
+#
+def handleWhere(id, server):
+    global graph
+    x = -1
+    y = -1
+    if(id in graph.positions):
+        x = graph.positions[id][0]
+        y = graph.positions[id][1]
+    send_string = "THERE {} {} {}".format(id, x, y)
+    server.send(send_string.encode('utf-8'))
+
+#
 # handleUpdatePosition()
 # Takes the server and list of values passed by the UPDATEPOSITION. Checks to see if the node is in the graph.
 # If it isnt, it is added properly. If it is there, it updates the location of the node, and ALL of the edges
@@ -148,7 +163,6 @@ def handleUpdatePosition(value_list, server):
     num_reachable = len(graph.graph[sensor_id])                     # The number of reachable nodes
     reachable_list = []                                             # Initializing the reachable list
 
-    # Create the reachable list
     for i in graph.graph[sensor_id]:
         x = graph.positions[i][0]
         y = graph.positions[i][1]
@@ -180,13 +194,13 @@ def runServer():
     cond = True
 
     while cond:
-        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)    # Call to select, selects a queue of input possibilities
         for i in readable:
-            if i is server:
-                connection, client_address = i.accept()
+            if i is server:                                                         # We now loop over possible read-in sets
+                connection, client_address = i.accept()                             # If it is a new connection on listen(), we add it to inputs
                 connection.setblocking(0)
                 inputs.append(connection)
-            elif i is sys.stdin:
+            elif i is sys.stdin:                                                    # Otherwise, it is a message from the terminal
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for a send_data call
                 if(input_message == 'QUIT'):                                        # If the input is quit, we exit the loop
@@ -195,21 +209,20 @@ def runServer():
                 elif(input_array[0] == 'SENDDATA'):                                 # If we recieved a send sata call... we have to
                     originID = input_array[1]
                     destinationID = input_array[2]
-                    handleSendData(originID, destinationID)
+                    handleSendData(originID, destinationID)                         # Handle the send data accordingly in a call
                 else:
-                    print('invalid command entered')
-            else:
-                data = i.recv(1024)
+                    print('invalid command entered')                                # If the input is incorrect ...
+            else:                                                                   # Otherwise, data was sent from existing client
+                data = i.recv(1024)                                                 # Open the data and read it into an array
                 if data:
                     str = data.decode().strip()
-                    str_list = str.split()
+                    str_list = str.split()                                          # Array of string inputs
                     print(str)
-                    if(str_list[0] == 'UPDATEPOSITION'):
+                    if(str_list[0] == 'UPDATEPOSITION'):                            # Checks if the input is Update Position
                         handleUpdatePosition(str_list, i)
-                    elif(str_list[0] == 'WHERE'):
-                        print("Handle where")
-                        i.send("Some list of values".encode('utf-8'))
-                    if i not in outputs:
+                    elif(str_list[0] == 'WHERE'):                                   # Checks if the input is where
+                        handleWhere(str_list[1], i)
+                    if i not in outputs:                                            # We add the readable to outputs if necessary
                         outputs.append(i)
 
 #
