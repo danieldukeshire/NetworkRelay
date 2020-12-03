@@ -28,15 +28,16 @@ def sendUpdatePosition(client):
     send_string = "UPDATEPOSITION {} {} {} {}".format(sensor_id, sensor_range, x_coordinate, y_coordinate)
     client.send(send_string.encode('utf-8'))
     buf = client.recv(1024)
-    print(buf.decode())
+    return buf
 
 #
 # handleSendData()
-# Handles the send data call from stdin. Not sure as what to do here ????
+# Handles the send data call from stdin. Sends a data message to the server in the form:
+# DATAMESSAGE [OriginID] [NextID] [DestinationID] [HopListLength] [HopList]
 #
-def handleSendData(destinationID):
-    print("handled send data", destinationID)
-    # First update position
+def handleSendData(destinationID, client):
+    msg = sendUpdatePosition(client)                # Starts by updating the current position
+    #send_string = "DATAMESSAGE {} {} [DestinationID] [HopListLength] [HopList]".format(sensor_id, destinationID, destinationID, )
 
 #
 # handleMove()
@@ -111,7 +112,7 @@ def runClient():
                     handleMove(new_x, new_y, client)                                # Pass them to the handler function
                 elif(input_array[0] == 'SENDDATA'):                                 # RECIEVE SENDDATE MESSAGE
                     destinationID = input_array[1]
-                    handleSendData(originID, destinationID)
+                    handleSendData(destinationID, client)
                 elif(input_array[0] == 'WHERE'):                                    # RECIEVE WHERE MESSAGE
                     handleWhere(input_message, client)
                 else:
