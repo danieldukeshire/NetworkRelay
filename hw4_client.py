@@ -30,6 +30,29 @@ def sendUpdatePosition(client):
     buf = client.recv(1024)
     return buf
 
+# 
+# interpretPositionString()
+# takes as input the result from UPDATEPOSITION and returns a proper dictionary of reachable items.
+# Input in format: REACHABLE [NumReachable] [ReachableList]
+# Where ReachableList in space delimited format: [ID] [XPOS] [YPOS]
+# returns dictionary in format: {Key = station_name, Value = coord_tuple (x,y)}
+# 
+def interpretPositionString(msg):
+	output = {}
+	delim_str = msg.decode("utf-8").split()								
+	numReachable = int(delim_str[1])
+
+	# Get the list and loop through the items
+	i = 0
+	lis = delim_str[2:]
+	while i < (3 * numReachable):
+		name = lis[i].strip('[],\'\"')
+		xpos = int(lis[i+1].strip('[],\'\"'))
+		ypos = int(lis[i+2].strip('[],\'\"'))
+		output[name] = (xpos,ypos)
+		i += 3
+	return output
+
 #
 # handleSendData()
 # Handles the send data call from stdin. Sends a data message to the server in the form:
@@ -37,7 +60,32 @@ def sendUpdatePosition(client):
 #
 def handleSendData(destinationID, client):
     msg = sendUpdatePosition(client)                # Starts by updating the current position
-    #send_string = "DATAMESSAGE {} {} [DestinationID] [HopListLength] [HopList]".format(sensor_id, destinationID, destinationID, )
+    reachable = interpretPositionString(msg)		# Converts reachable string to dict object
+    nextID = ""
+    hopListLength = 1
+    hopList = [sensor_id]							# Start off with the current sensor in hop list
+
+    print(reachable)
+
+    # Check if element in list matches dest name
+    dest_reachable = False							# Variable to track if destination immediately reachable
+    for key,(x,y) in reachable.items():
+    	if key == destinationID:
+    		nextID = destinationID 					# destID becomes our nextID
+    		dest_reachable = True
+    		break
+
+    # Find the next closest node to send if dest isn't reachable
+    if dest_reachable == False:
+    	# Make a where call to get the location of dest
+    	print("unreachable")
+    	# Check for the element closest to dest based of location
+
+    # Format the string
+    send_string = "DATAMESSAGE {} {} {} {} {}".format(sensor_id, nextID, destinationID, hopListLength, hopList)
+
+    # Send the message
+    print(send_string)
 
 #
 # handleMove()
