@@ -66,7 +66,7 @@ class Graph(object):
                             self.add_edge(vertex, node)
                     else:                                               # Otherwise, if it is a sensor, they both have to be in range of one another
                         range2 = self.type[vertex]
-                        if(range>=dst and range2>=dst):                 # Here, we check to see if the ranges are compatable
+                        if(float(range)>=dst and float(range2)>=dst):                 # Here, we check to see if the ranges are compatable
                             self.add_edge(node, vertex)                 # and we add the edges accordingly
                             self.add_edge(vertex, node)
 
@@ -117,10 +117,41 @@ def readFromCommand():
 #
 # handleSendData()
 # Takes the originId and the destinationID, and outputs to the terminal after a few checks.
-# This is called in run() upon a senddata request
+# This is called in run() upon a senddata request.
 #
 def handleSendData(originID, destinationID):
-    print('This is where we handle the send data call from terminal')
+    print("handle send data")
+
+
+#
+# handleDataMessage()
+# Takes the data message send to the server, and attempts to deliver
+# The data message to the point of interest. The data message is sent in the form of
+# DATAMESSAGE [OriginID] [NextID] [DestinationID] [HopListLength] [HopList]
+#
+def handleDataMessage(str_list, server):
+    originID = str_list[1]
+    nextID = str_list[2]
+    destinationID = str_list[3]
+    global graph
+
+    # Case 1: The node to be sent data is one of the sender's edges
+    found = False                                                   # Condition to check if the node is found
+    if originID in graph.graph.keys():
+        for edge in graph.graph[originID]:                                # First checks to see if it is directly accessable
+            if edge == nextID:                                      # i.e. it is in the node's edges array
+                found = True
+                break
+    # Case 2: The node to be sent to is a base station and can be forwarded
+    # Code here
+
+    # Case 3: The node to be sent to is a client and can be forwarded
+    # Code here
+
+    # If we found the node and the destination is reached... we can return to the client
+    if found == True and destinationID == nextID:                   # DATAMESSAGE [OriginID] [NextID] [DestinationID] [HopListLength] [HopList]
+        print_string = "{}: Message from {} to {} successfully recieved".format(destinationID, originID, destinationID)
+        print(print_string)
 
 #
 # handleWhere()
@@ -171,6 +202,7 @@ def handleUpdatePosition(value_list, server):
 
     send_string = "REACHABLE {} {}".format(num_reachable, reachable_list)
     server.send(send_string.encode('utf-8'))                        # Sends the string to the client
+    #print(graph.graph)
 
 #
 # run()
@@ -217,11 +249,12 @@ def runServer():
                 if data:
                     str = data.decode().strip()
                     str_list = str.split()                                          # Array of string inputs
-                    print(str)
                     if(str_list[0] == 'UPDATEPOSITION'):                            # Checks if the input is Update Position
                         handleUpdatePosition(str_list, i)
                     elif(str_list[0] == 'WHERE'):                                   # Checks if the input is where
                         handleWhere(str_list[1], i)
+                    elif(str_list[0] == 'DATAMESSAGE'):
+                        handleDataMessage(str_list, i)
                     if i not in outputs:                                            # We add the readable to outputs if necessary
                         outputs.append(i)
 

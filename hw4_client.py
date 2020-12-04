@@ -64,7 +64,7 @@ def handleSendData(destinationID, client):
     hopListLength = 1
     hopList = [sensor_id]							# Start off with the current sensor in hop list
 
-    print(reachable)
+    #print(reachable)
 
     # Check if element in list matches dest name
     dest_reachable = False							# Variable to track if destination immediately reachable
@@ -79,12 +79,15 @@ def handleSendData(destinationID, client):
     	# Make a where call to get the location of dest
     	print("unreachable")
     	# Check for the element closest to dest based of location
+    else:
+        print_str = "Sent a new message directly to {}".format(nextID)
+        print(print_str)
 
     # Format the string
     send_string = "DATAMESSAGE {} {} {} {} {}".format(sensor_id, nextID, destinationID, hopListLength, hopList)
-
-    # Send the message
-    print(send_string)
+    client.send(send_string.encode('utf-8'))        # Send the message
+    #buf = client.recv(1024)
+    #print(buf.decode())
 
 #
 # handleMove()
