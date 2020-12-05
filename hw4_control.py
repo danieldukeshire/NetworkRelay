@@ -202,7 +202,7 @@ def handleUpdatePosition(value_list, server):
 
     send_string = "REACHABLE {} {}".format(num_reachable, reachable_list)
     server.send(send_string.encode('utf-8'))                        # Sends the string to the client
-    #print(graph.graph)
+    print(graph.graph)
 
 #
 # run()
