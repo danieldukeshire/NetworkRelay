@@ -25,6 +25,9 @@ def handleDataMessage(str_list, i):
     if(destinationID == sensor_id):
         print_string = "{}: Message from {} to {} successfully received.".format(sensor_id, originID, sensor_id)
         print(print_string)
+    else:
+        print_string = "{}: Message from {} to {} being forwarded through {}".format(sensor_id, originID, destinationID, sensor_id)
+        print(print_string)
 
 
 
@@ -85,9 +88,9 @@ def handleSendData(destinationID, client):
 
     # Find the next closest node to send if dest isn't reachable
     if dest_reachable == False:
-    	print_str = "Sent a new message bound for {}".format(destinationID)
+    	print_str = "{}: Sent a new message bound for {}.".format(sensor_id, destinationID)
     else:
-        print_str = "Sent a new message directly to {}".format(nextID)
+        print_str = "{}: Sent a new message directly to {}.".format(sensor_id, nextID)
     print(print_str)
 
     # Format the string

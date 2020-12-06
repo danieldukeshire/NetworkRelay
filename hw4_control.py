@@ -119,9 +119,9 @@ def readFromCommand():
 # Takes the originId and the destinationID, and outputs to the terminal after a few checks.
 # This is called in run() upon a senddata request.
 #
-def handleSendData(originID, destinationID):
-    client = all_connections[destinationID]
-    send_string = "DATAMESSAGE {} {} {} {} {}".format(originID, '-1', destinationID, 0, '[]')
+def handleSendData(originID, destinationID, nextID):
+    client = all_connections[nextID]
+    send_string = "DATAMESSAGE {} {} {} {} {}".format(originID, nextID, destinationID, 0, '[]')
     client.send(send_string.encode('utf-8'))        # Send the message
 
 
@@ -170,16 +170,16 @@ def handleDataMessage(str_list, server):
         while i < len(path):
             if(i == len(path)-1): #and graph.type[path[-1]] == '-1'):
                 if(graph.type[path[i]] == -1):
-                    print_string = "{}: Message from {} to {} successfully recieved".format(destinationID, originID, destinationID)
+                    print_string = "{}: Message from {} to {} successfully recieved.".format(destinationID, originID, destinationID)
                     print(print_string)
                 else:
-                    handleSendData(originID, path[i])
+                    handleSendData(originID, path[i], path[i])
             else:
                 if(graph.type[path[i]] == -1):
                     print_string = "{}: Message from {} to {} being forwarded through {}".format(path[i], originID, destinationID, path[i])
                     print(print_string)
                 else:
-                    handleSendData(originID, path[i])
+                    handleSendData(originID, destinationID, path[i])
             i += 1
 
 #
