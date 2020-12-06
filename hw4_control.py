@@ -16,6 +16,7 @@ import math
 
 control_port = None                     # The port the server should listen on for sensors to connect to
 graph = None
+all_connections = {}
 
 #
 # class Graph
@@ -46,7 +47,7 @@ class Graph(object):
         if node not in self.type:
             self.type[node] = float(range)                          # assigns the boolean value, TRUE if it is a base station, FALSE otherwise
 
-    def add_edge(self, id, edge):                                       # Adds an edge between two locations in the form:
+    def add_edge(self, id, edge):                                   # Adds an edge between two locations in the form:
         if id in self.graph:
             self.graph[id].append(edge)
 
@@ -66,8 +67,8 @@ class Graph(object):
                             self.add_edge(vertex, node)
                     else:                                               # Otherwise, if it is a sensor, they both have to be in range of one another
                         range2 = self.type[vertex]
-                        if(float(range)>=dst and float(range2)>=dst):                 # Here, we check to see if the ranges are compatable
-                            self.add_edge(node, vertex)                 # and we add the edges accordingly
+                        if(float(range)>=dst and float(range2)>=dst):   # Here, we check to see if the ranges are compatable
+                            self.add_edge(node, vertex)             # and we add the edges accordingly
                             self.add_edge(vertex, node)
 
     def removeEdgesId(self, node):                                  # Removes all edge values with the same id value as "node"
@@ -94,7 +95,6 @@ def inputToGraph(fp):
         graph.add_node(BaseId, XPos, YPos, -1)                      # Adds the id to the graph
         for i in edges:                                             # Adds all of the edges
             graph.add_edge(BaseId, i)
-
 #
 # readFromCommand()
 # Reads-in the values from the command-line: control port and text file
@@ -120,8 +120,33 @@ def readFromCommand():
 # This is called in run() upon a senddata request.
 #
 def handleSendData(originID, destinationID):
-    print("handle send data")
+    client = all_connections[destinationID]
+    send_string = "DATAMESSAGE {} {} {} {} {}".format(originID, '-1', destinationID, 0, '[]')
+    client.send(send_string.encode('utf-8'))        # Send the message
 
+
+def distances(destinationID, originID):
+    global graph
+    distances_for_originID = {}
+    a = graph.positions[destinationID]                          # We choose the next node to traverse to by the shortest distance
+    for edge in graph.graph[originID]:
+        b = graph.positions[edge]
+        dst = math.sqrt( (a[0]-b[0])**2 + (a[1]-b[1])**2 )
+        distances_for_originID[edge] =  dst                     # A dictionary with all keys being edges of the origin id, values being distances
+
+    sort = sorted(distances_for_originID.items(), key=lambda item: (item[1], item[0])) # The sorted list
+    return sort
+
+
+def dfs(start_node, visited, end_node):
+    global graph
+    visited.append(start_node)
+    if start_node == end_node:
+        return visited
+    dist = distances(end_node, start_node)
+    for neighbour in dist:
+        if neighbour[0] not in visited:
+            return dfs(neighbour[0], visited, end_node)
 
 #
 # handleDataMessage()
@@ -131,27 +156,31 @@ def handleSendData(originID, destinationID):
 #
 def handleDataMessage(str_list, server):
     originID = str_list[1]
+    temp_o_ID = originID
     nextID = str_list[2]
     destinationID = str_list[3]
     global graph
+    cond = True
+    path = dfs(originID, [], destinationID)
 
-    # Case 1: The node to be sent data is one of the sender's edges
-    found = False                                                   # Condition to check if the node is found
-    if originID in graph.graph.keys():
-        for edge in graph.graph[originID]:                                # First checks to see if it is directly accessable
-            if edge == nextID:                                      # i.e. it is in the node's edges array
-                found = True
-                break
-    # Case 2: The node to be sent to is a base station and can be forwarded
-    # Code here
-
-    # Case 3: The node to be sent to is a client and can be forwarded
-    # Code here
-
-    # If we found the node and the destination is reached... we can return to the client
-    if found == True and destinationID == nextID:                   # DATAMESSAGE [OriginID] [NextID] [DestinationID] [HopListLength] [HopList]
-        print_string = "{}: Message from {} to {} successfully recieved".format(destinationID, originID, destinationID)
-        print(print_string)
+    if path == None:
+        print("No path found")
+    else:
+        i = 1
+        while i < len(path):
+            if(i == len(path)-1): #and graph.type[path[-1]] == '-1'):
+                if(graph.type[path[i]] == -1):
+                    print_string = "{}: Message from {} to {} successfully recieved".format(destinationID, originID, destinationID)
+                    print(print_string)
+                else:
+                    handleSendData(originID, path[i])
+            else:
+                if(graph.type[path[i]] == -1):
+                    print_string = "{}: Message from {} to {} being forwarded through {}".format(path[i], originID, destinationID, path[i])
+                    print(print_string)
+                else:
+                    handleSendData(originID, path[i])
+            i += 1
 
 #
 # handleWhere()
@@ -202,7 +231,7 @@ def handleUpdatePosition(value_list, server):
 
     send_string = "REACHABLE {} {}".format(num_reachable, reachable_list)
     server.send(send_string.encode('utf-8'))                        # Sends the string to the client
-    print(graph.graph)
+    #print(graph.graph)
 
 #
 # run()
@@ -214,14 +243,15 @@ def handleUpdatePosition(value_list, server):
 # Sensor input options
 #
 def runServer():
+    global all_connections                                              # A global dictionary with the client_name, and the socket as value
     global graph
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        # Create a TCP socket
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)          # Create a TCP socket
 
-    server.bind(('', int(control_port)))                              # Set the socket to listen on any address, on the specified port
-    server.listen(5)                                                  # bind takes a 2-tuple, not 2 arguments
+    server.bind(('', int(control_port)))                                # Set the socket to listen on any address, on the specified port
+    server.listen(5)                                                    # bind takes a 2-tuple, not 2 arguments
     #server.setblocking(0)
-    cond = True                                                       # A condition to loop on, until the input from the terminal is QUIT
-    inputs = [server, sys.stdin]                                      # Setting up the inputs for the select() call
+    cond = True                                                         # A condition to loop on, until the input from the terminal is QUIT
+    inputs = [server, sys.stdin]                                        # Setting up the inputs for the select() call
     outputs = []
     cond = True
 
@@ -251,6 +281,7 @@ def runServer():
                     str_list = str.split()                                          # Array of string inputs
                     if(str_list[0] == 'UPDATEPOSITION'):                            # Checks if the input is Update Position
                         handleUpdatePosition(str_list, i)
+                        all_connections[str_list[1]] = i                            # Stores the address to send to
                     elif(str_list[0] == 'WHERE'):                                   # Checks if the input is where
                         handleWhere(str_list[1], i)
                     elif(str_list[0] == 'DATAMESSAGE'):

@@ -18,6 +18,16 @@ sensor_range = None         # The range of this clint
 x_coordinate = None         # The current x_coordinate of this client
 y_coordinate = None         # The current y_coordinate of this client
 
+
+def handleDataMessage(str_list, i):
+    destinationID = str_list[3]
+    originID = str_list[1]
+    if(destinationID == sensor_id):
+        print_string = "{}: Message from {} to {} successfully received.".format(sensor_id, originID, sensor_id)
+        print(print_string)
+
+
+
 #
 # sendUpdatePosition
 # Takes a client object, and sends an updte position message to the server in the form of:
@@ -60,12 +70,11 @@ def interpretPositionString(msg):
 def handleSendData(destinationID, client):
     msg = sendUpdatePosition(client)                # Starts by updating the current position
     reachable = interpretPositionString(msg)		# Converts reachable string to dict object
-    nextID = ""
+    nextID = "-1"
     hopListLength = 1
     hopList = [sensor_id]							# Start off with the current sensor in hop list
 
     #print(reachable)
-
     # Check if element in list matches dest name
     dest_reachable = False							# Variable to track if destination immediately reachable
     for key,(x,y) in reachable.items():
@@ -76,18 +85,14 @@ def handleSendData(destinationID, client):
 
     # Find the next closest node to send if dest isn't reachable
     if dest_reachable == False:
-    	# Make a where call to get the location of dest
-    	print("unreachable")
-    	# Check for the element closest to dest based of location
+    	print_str = "Sent a new message bound for {}".format(destinationID)
     else:
         print_str = "Sent a new message directly to {}".format(nextID)
-        print(print_str)
+    print(print_str)
 
     # Format the string
     send_string = "DATAMESSAGE {} {} {} {} {}".format(sensor_id, nextID, destinationID, hopListLength, hopList)
     client.send(send_string.encode('utf-8'))        # Send the message
-    #buf = client.recv(1024)
-    #print(buf.decode())
 
 #
 # handleMove()
@@ -161,9 +166,14 @@ def runClient():
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
         for i in readable:
             if i is client:
-                buf = client.recv(1024)
-                if(len(buf.decode()) != 0):
-                    str = buf.decode()
+                data = i.recv(1024)
+                if data:
+                    str = data.decode().strip()
+                    str_list = str.split()                                          # Array of string inputs
+                    if(str_list[0] == 'DATAMESSAGE'):
+                        handleDataMessage(str_list, i)
+                    if i not in outputs:                                            # We add the readable to outputs if necessary
+                        outputs.append(i)
             elif i is sys.stdin:                                                    # RECIEVING DATA FROM STDIN
                 input_message = sys.stdin.readline().strip()                        # Strip the ending of new line character
                 input_array = input_message.split()                                 # Prepping for multi-input stdin values
@@ -181,6 +191,10 @@ def runClient():
                     handleWhere(input_message, client)
                 else:
                     print('Command not supported. Try again')
+            else:
+                print("CONNECTED2")
+                                                                # Open the data and read it into an array
+
 
 #
 # main()
