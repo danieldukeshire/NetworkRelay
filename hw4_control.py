@@ -170,7 +170,7 @@ def handleDataMessage(str_list, server):
         while i < len(path):
             if(i == len(path)-1): #and graph.type[path[-1]] == '-1'):
                 if(graph.type[path[i]] == -1):
-                    print_string = "{}: Message from {} to {} successfully recieved.".format(destinationID, originID, destinationID)
+                    print_string = "{}: Message from {} to {} successfully received.".format(destinationID, originID, destinationID)
                     print(print_string)
                 else:
                     handleSendData(originID, path[i], path[i])
@@ -268,7 +268,7 @@ def runServer():
                 if(input_message == 'QUIT'):                                        # If the input is quit, we exit the loop
                     cond = False
                     server.close()
-                elif(input_array[0] == 'SENDDATA'):                                 # If we recieved a send sata call... we have to
+                elif(input_array[0] == 'SENDDATA'):                                 # If we received a send sata call... we have to
                     originID = input_array[1]
                     destinationID = input_array[2]
                     handleSendData(originID, destinationID)                         # Handle the send data accordingly in a call
