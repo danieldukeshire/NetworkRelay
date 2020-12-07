@@ -163,8 +163,27 @@ def handleDataMessage(str_list, server):
     cond = True
     path = dfs(originID, [], destinationID)
 
+    # Handle the case where there isn't a path.
+    # Even though we know there isn't a path, we still need to play out the example
     if path == None:
-        print("No path found")
+        # Send to the node nearest to DEST reachable from client
+        nodes = distances(destinationID, originID)
+        visited = [originID]
+        while len(nodes) > 0:
+            found_next = False
+            for i in nodes:
+                if i[0] not in visited:
+                    nextID = i[0]
+                    visited.append(nextID)
+                    print_string = "{}: Message from {} to {} being forwarded through {}".format(nextID, originID, destinationID, nextID)
+                    print(print_string)
+                    nodes = distances(destinationID, nextID)
+                    found_next = True
+                    break
+            if found_next == False:
+                print_string = "{}: Message from {} to {} could not be delivered.".format(visited[-1], originID, destinationID)
+                print(print_string)
+                break
     else:
         i = 1
         while i < len(path):

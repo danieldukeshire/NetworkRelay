@@ -77,11 +77,9 @@ def handleSendData(destinationID, client):
     hopListLength = 1
     hopList = [sensor_id]							# Start off with the current sensor in hop list
 
-    print(reachable)
-
     # Check for case where no reachable nodes
     if(len(reachable) == 0):
-    	print_str = "Message from {} to {} could not be delivered.".format(sensor_id, destinationID)
+    	print_str = "{}: Message from {} to {} could not be delivered.".format(sensor_id, sensor_id, destinationID)
     	print(print_str)
     	return # We should not send any information to control in this case
 
