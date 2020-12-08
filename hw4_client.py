@@ -81,7 +81,7 @@ def handleSendData(destinationID, client):
     if(len(reachable) == 0):
     	print_str = "{}: Message from {} to {} could not be delivered.".format(sensor_id, sensor_id, destinationID)
     	print(print_str)
-    	return # We should not send any information to control in this case
+    	return # No data should be sent to control in this case
 
     #print(reachable)
     # Check if element in list matches dest name

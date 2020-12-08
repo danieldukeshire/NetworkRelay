@@ -164,11 +164,13 @@ def handleDataMessage(str_list, server):
     path = dfs(originID, [], destinationID)
 
     # Handle the case where there isn't a path.
-    # Even though we know there isn't a path, we still need to play out the example
+    # Even though we know there isn't a path, we still need to play it out until it can't anymore
     if path == None:
         # Send to the node nearest to DEST reachable from client
-        nodes = distances(destinationID, originID)
+        nodes = distances(destinationID, originID)                     # Get reachable nodes sorted by increasing distance from dest
         visited = [originID]
+        # While there are nodes to visit, visit them
+        # This loops through the "path" until there are no more moves
         while len(nodes) > 0:
             found_next = False
             for i in nodes:
@@ -180,10 +182,13 @@ def handleDataMessage(str_list, server):
                     nodes = distances(destinationID, nextID)
                     found_next = True
                     break
+            # Onces there are no more moves, this runs
             if found_next == False:
                 print_string = "{}: Message from {} to {} could not be delivered.".format(visited[-1], originID, destinationID)
                 print(print_string)
                 break
+    # Handle the case where the is a path
+    # In this case we do one move and hand off to the next client
     else:
         i = 1
         while i < len(path):
