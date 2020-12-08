@@ -125,6 +125,12 @@ def handleSendData(originID, destinationID, nextID):
     client.send(send_string.encode('utf-8'))        # Send the message
 
 
+#
+# distances()
+# Takes a destinationID and an originID. It computes all of the distances
+# From each edge of the originID to the destinationId, and returns a sorted
+# list of all of the edges by distance and then alphanumeric.
+#
 def distances(destinationID, originID):
     global graph
     distances_for_originID = {}
@@ -138,14 +144,20 @@ def distances(destinationID, originID):
     return sort
 
 
+#
+# dfs()
+# Takes a start_node, empty vitited array and an end node,
+# and returns the finished visitied list if there is a path found.
+# Otherwise, it returns nothing.
+#
 def dfs(start_node, visited, end_node):
     global graph
     visited.append(start_node)
-    if start_node == end_node:
+    if start_node == end_node:                                  # If we found the end node, we csn return the visited list
         return visited
-    dist = distances(end_node, start_node)
-    for neighbour in dist:
-        if neighbour[0] not in visited:
+    dist = distances(end_node, start_node)                      # Otherwise, we get an array of all the distances of edges of the startID
+    for neighbour in dist:                                      # Loop over all of these edges
+        if neighbour[0] not in visited:                         # If it hasnt been visited, we can ... recurse on that value !
             return dfs(neighbour[0], visited, end_node)
 
 #
@@ -209,7 +221,7 @@ def handleDataMessage(str_list, server):
 #
 # handleWhere()
 # On request from the client, returns a formatted message with the location of the
-# passed id
+# passed id.
 #
 def handleWhere(id, server):
     global graph
